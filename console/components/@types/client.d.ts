@@ -17,6 +17,7 @@ type IDestination =
   | ISqlite
   | IHelloWorld
   | ISnowflake
+  | IBacalhau
   | IMyceliteDestination
   | IMycelialNetwork;
 
@@ -64,6 +65,12 @@ type ISnowflake = {
   account_identifier: string;
   warehouse: string;
   database: string;
+};
+
+type IBacalhau = {
+  type: string;
+  display_name: string;
+  job: string;
 };
 
 type IMyceliteSource = {

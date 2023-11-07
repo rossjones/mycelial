@@ -43,6 +43,7 @@ import {
   PostgresSourceNode,
   HelloWorldSourceNode,
   HelloWorldDestinationNode,
+  BacalhauDestinationNode,
 } from "@/components/nodes";
 
 import { Grid, Group } from "@/components/layout";
@@ -70,11 +71,10 @@ const useStyles = createStyles((theme) => ({
     marginBottom: theme.spacing.md,
 
     "&:not(:last-of-type)": {
-      borderBottom: `${rem(1)} solid ${
-        theme.colorScheme === "dark"
-          ? theme.colors.dark[4]
-          : theme.colors.gray[3]
-      }`,
+      borderBottom: `${rem(1)} solid ${theme.colorScheme === "dark"
+        ? theme.colors.dark[4]
+        : theme.colors.gray[3]
+        }`,
     },
   },
 
@@ -181,6 +181,7 @@ const nodeTypes = {
   postgres_source: PostgresSourceNode,
   hello_world_source: HelloWorldSourceNode,
   hello_world_destination: HelloWorldDestinationNode,
+  bacalhau_destination: BacalhauDestinationNode,
 };
 
 const defaultEdgeOptions = {
@@ -276,7 +277,7 @@ function NavbarSearch(props: NavbarSearchProps) {
         onDragStart={(event) => onDragStart(event, null, source, source)}
         draggable
       >
-        Mycelial Server 
+        Mycelial Server
       </div>,
     ];
   };
@@ -335,7 +336,7 @@ async function getConfigs(token: string) {
     });
     const result = await response.json();
     return result;
-  } catch (error) {}
+  } catch (error) { }
 }
 
 const dagreGraph = new dagre.graphlib.Graph();
@@ -561,7 +562,7 @@ function Flow() {
 
       if (edge.data?.id) {
         let payload = {
-          configs: [{id: edge.data.id, pipe: pipe}]
+          configs: [{ id: edge.data.id, pipe: pipe }]
         }
         try {
           const response = await fetch("/api/pipe", {
@@ -580,7 +581,7 @@ function Flow() {
       } else {
         let id = 0;
         let payload = {
-          configs: [{id: 0, pipe: pipe}]
+          configs: [{ id: 0, pipe: pipe }]
         }
         const response = await fetch("/api/pipe", {
           method: "POST",
@@ -603,7 +604,7 @@ function Flow() {
                   id: id,
                 },
               }
-            } 
+            }
             return ed;
           });
         })
