@@ -71,6 +71,7 @@ type IBacalhau = {
   type: string;
   display_name: string;
   job: string;
+  jobstore: string;
 };
 
 type IMyceliteSource = {

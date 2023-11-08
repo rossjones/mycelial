@@ -4,28 +4,27 @@
 //! information from the RecordBatch, posts it to the configured
 //! endpoint, to be processed by an external process.
 
+use crate::jobstore::JobStore;
 use crate::BacalhauPayload;
 
 use super::{Message, StdError};
 use std::pin::{pin, Pin};
 
-use section::Section;
-
 use futures::{Future, FutureExt, Sink, SinkExt, Stream, StreamExt};
 use reqwest;
-use section::{Command, SectionChannel};
+use section::{Command, Section, SectionChannel};
 
 #[derive(Debug)]
 pub struct Bacalhau {
     pub job: String,
-    pub jobstore: String,
+    pub jobstore: JobStore,
 }
 
 impl Bacalhau {
     pub fn new(job: impl Into<String>, jobstore: impl Into<String>) -> Self {
         Self {
             job: job.into(),
-            jobstore: jobstore.into(),
+            jobstore: JobStore::new(jobstore).expect("should be able to create jobstore"),
         }
     }
 

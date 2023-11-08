@@ -8,6 +8,7 @@ use crate::types::{DynSection, DynSink, DynStream, SectionError};
 
 use futures::StreamExt;
 use std::future::Future;
+use std::path::Path;
 use std::pin::Pin;
 use stub::Stub;
 
@@ -56,6 +57,12 @@ pub fn constructor<S: SectionChannel>(
         .ok_or("bacalhau section requires 'jobstore'")?
         .as_str()
         .ok_or("'jobstore' should be a string")?;
+
+    // Verify jobstore folder exists
+    if !Path::new(jobstore).exists() {
+        return Err(format!("'jobstore' path '{}' does not exist", jobstore).into());
+    }
+
     Ok(Box::new(BacalhauAdapter {
         inner: Bacalhau::new(job, jobstore),
     }))

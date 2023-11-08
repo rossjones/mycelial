@@ -84,6 +84,8 @@ pub struct KafkaConfig {
 pub struct BacalhauConfig {
     #[serde(flatten)]
     pub common_attrs: CommonAttrs,
+    pub job: String,
+    pub jobstore: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

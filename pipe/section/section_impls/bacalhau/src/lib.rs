@@ -1,4 +1,5 @@
 pub mod destination;
+pub mod jobstore;
 
 use arrow::{
     array::{downcast_array, Array, AsArray, PrimitiveArray, StringArray},
