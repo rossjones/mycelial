@@ -1,3 +1,4 @@
+pub mod api;
 pub mod destination;
 pub mod jobstore;
 

@@ -55,6 +55,7 @@ impl JobStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api::Job;
 
     #[test]
     fn test_jobstore() -> Result<(), StdError> {
@@ -66,8 +67,12 @@ mod tests {
         let j = JobStore::new(path.to_str().unwrap())?;
         let res = j.render(String::from("docker"), &args)?;
 
-        println!("{:?}", res);
-        println!("{}", res);
+        // Parse yaml into a Job .
+        let job: Job = serde_yaml::from_str(&res).unwrap();
+        println!("Name: {:?}", job.name);
+
+        let s = serde_json::to_string(&job).unwrap();
+        println!("STR: {}", s);
 
         Ok(())
     }

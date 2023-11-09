@@ -4,6 +4,7 @@
 //! information from the RecordBatch, posts it to the configured
 //! endpoint, to be processed by an external process.
 
+use crate::api::*;
 use crate::jobstore::JobStore;
 use crate::BacalhauPayload;
 
