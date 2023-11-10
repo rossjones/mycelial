@@ -1,6 +1,7 @@
 use crate::StdError;
 use handlebars::Handlebars;
 use serde_json::json;
+use serde_yaml::Value;
 use std::{collections::HashMap, fs, path::PathBuf};
 
 pub struct JobStore {
@@ -46,16 +47,15 @@ impl JobStore {
     }
 
     pub fn render(&self, name: String, data: &HashMap<String, String>) -> Result<String, StdError> {
-        self.templates
-            .render(&name, &json!(data))
-            .map_err(|e| e.into())
+        let text = self.templates.render(&name, &json!(data)).map_err(|e| e)?;
+        let job: Value = serde_yaml::from_str(&text).unwrap();
+        Ok(serde_json::to_string(&job).unwrap())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::Job;
 
     #[test]
     fn test_jobstore() -> Result<(), StdError> {
@@ -65,14 +65,9 @@ mod tests {
         args.insert("image".into(), "ubuntu".into());
 
         let j = JobStore::new(path.to_str().unwrap())?;
-        let res = j.render(String::from("docker"), &args)?;
+        let output = j.render(String::from("docker"), &args)?;
 
-        // Parse yaml into a Job .
-        let job: Job = serde_yaml::from_str(&res).unwrap();
-        println!("Name: {:?}", job.name);
-
-        let s = serde_json::to_string(&job).unwrap();
-        println!("STR: {}", s);
+        println!("STR: {}", output);
 
         Ok(())
     }
