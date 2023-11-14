@@ -4,14 +4,17 @@
 //! information from the RecordBatch, posts it to the configured
 //! endpoint, to be processed by an external process.
 
+use crate::api::submit;
 use crate::jobstore::JobStore;
 use crate::BacalhauPayload;
 
 use super::{Message, StdError};
-use std::pin::{pin, Pin};
+use std::{
+    collections::HashMap,
+    pin::{pin, Pin},
+};
 
 use futures::{Future, FutureExt, Sink, SinkExt, Stream, StreamExt};
-use reqwest;
 use section::{Command, Section, SectionChannel};
 
 #[derive(Debug)]
@@ -28,8 +31,13 @@ impl Bacalhau {
         }
     }
 
-    pub async fn submit_job(&self, _payload: &BacalhauPayload) -> Result<(), StdError> {
-        Ok(())
+    pub async fn submit_job(&self, payload: &BacalhauPayload) -> Result<String, StdError> {
+        // We'll either get an Err from the call to render, or we'll get either
+        // an Ok or Err from the call to submit.
+        match self.jobstore.render(self.job.clone(), &payload.data) {
+            Ok(output) => submit(&output).await,
+            Err(m) => Err(m),
+        }
     }
 
     pub async fn enter_loop<Input, Output, SectionChan>(
@@ -61,7 +69,7 @@ impl Bacalhau {
 
                     let payload = &msg.payload;
                     let origin = &msg.origin;
-                    self.submit_job(&payload).await?;
+                    self.submit_job(payload).await?;
 
                     section_chan.log(&format!("Message from '{:?}' received! {:?}", origin, payload)).await?;
                     output.send(msg).await?;

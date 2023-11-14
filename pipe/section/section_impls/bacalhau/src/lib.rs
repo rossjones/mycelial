@@ -1,3 +1,4 @@
+pub mod api;
 pub mod destination;
 pub mod jobstore;
 
@@ -44,7 +45,7 @@ where
 {
     downcast_array::<PrimitiveArray<T>>(array)
         .into_iter()
-        .nth(0)
+        .next()
         .unwrap()
         .unwrap()
 }
@@ -79,7 +80,7 @@ impl TryFrom<&RecordBatch> for BacalhauPayload {
                     }
                     DataType::Utf8 => downcast_array::<StringArray>(array)
                         .into_iter()
-                        .nth(0)
+                        .next()
                         .unwrap_or(Some(""))
                         .unwrap()
                         .to_string(),

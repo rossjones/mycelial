@@ -1,8 +1,11 @@
+use crate::api::submit;
 use crate::StdError;
-use handlebars::Handlebars;
-use serde_json::json;
-use serde_yaml::Value;
 use std::{collections::HashMap, fs, path::PathBuf};
+
+use handlebars::Handlebars;
+use serde::Serialize;
+use serde_json::{json, Map};
+use serde_yaml::Value;
 
 pub struct JobStore {
     templates: Handlebars<'static>,
@@ -47,27 +50,54 @@ impl JobStore {
     }
 
     pub fn render(&self, name: String, data: &HashMap<String, String>) -> Result<String, StdError> {
-        let text = self.templates.render(&name, &json!(data)).map_err(|e| e)?;
+        let text = self.templates.render(&name, &json!(data))?;
         let job: Value = serde_yaml::from_str(&text).unwrap();
-        Ok(serde_json::to_string(&job).unwrap())
+
+        let request = PutJobRequest {
+            job,
+            idempotency_token: None,
+            namespace: None,
+            headers: None,
+        };
+
+        Ok(serde_json::to_string(&request).unwrap())
     }
+}
+
+#[derive(Serialize)]
+struct PutJobRequest {
+    #[serde(rename = "Job")]
+    job: Value,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "IdempotencyToken")]
+    idempotency_token: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Namespace")]
+    namespace: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Headers")]
+    headers: Option<Map<String, serde_json::Value>>,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_jobstore() -> Result<(), StdError> {
+    #[tokio::test]
+    async fn test_jobstore() -> Result<(), StdError> {
         let path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "testdata"].iter().collect();
 
         let mut args: HashMap<String, String> = HashMap::new();
         args.insert("image".into(), "ubuntu".into());
 
         let j = JobStore::new(path.to_str().unwrap())?;
-        let output = j.render(String::from("docker"), &args)?;
+        let output = j.render(String::from("process"), &args)?;
 
-        println!("STR: {}", output);
+        let r = submit(&output).await;
+        println!("{:?}", r);
 
         Ok(())
     }

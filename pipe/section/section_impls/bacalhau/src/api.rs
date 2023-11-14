@@ -1,143 +1,48 @@
-use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use crate::StdError;
+use reqwest;
+use serde::Deserialize;
 
-#[derive(Serialize, Deserialize)]
-pub struct Job {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "ID")]
-    id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Name")]
-    pub name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Namespace")]
-    namespace: Option<String>,
-    #[serde(rename = "Type")]
-    kind: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Priority")]
-    priority: Option<i64>,
-    #[serde(rename = "Count")]
-    count: i64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Constraints")]
-    constraints: Option<Vec<LabelSelectorRequirement>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Meta")]
-    meta: Option<Map<String, Value>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Labels")]
-    labels: Option<Map<String, Value>>,
-    #[serde(rename = "Tasks")]
-    tasks: Vec<Task>,
+#[derive(Deserialize)]
+struct SubmitErrorResponse {
+    error: String,
+    message: String,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct LabelSelectorRequirement {
-    #[serde(rename = "Key")]
-    key: String,
-    #[serde(rename = "Operator")]
-    operator: String,
-    #[serde(rename = "Values")]
-    values: Vec<String>,
+#[derive(Deserialize)]
+struct SubmitResponse {
+    #[serde(rename = "JobID")]
+    job_id: String,
+
+    #[serde(rename = "EvaluationID")]
+    evaluation_id: String,
+
+    #[serde(rename = "Warnings")]
+    warnings: Option<Vec<String>>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Task {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Name")]
-    name: Option<String>,
+pub async fn submit(body: &String) -> Result<String, StdError> {
+    // For now we'll assume a local instance and using the newer version
+    // of the jobs API.
+    let api_url = "http://127.0.0.1:20000/api/v1/orchestrator/jobs";
+    let client = reqwest::Client::new();
+    let response = client
+        .post(api_url)
+        .header("Content-Type", "application/json")
+        .body(body.clone())
+        .send()
+        .await?;
 
-    #[serde(rename = "Engine")]
-    engine: SpecConfig,
+    let success = &response.status().is_success();
+    let resp_body = &response.bytes().await?;
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Publisher")]
-    publisher: Option<SpecConfig>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Env")]
-    env: Option<Map<String, Value>>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Meta")]
-    meta: Option<Map<String, Value>>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "InputSources")]
-    input_sources: Option<Vec<InputSource>>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "ResultPaths")]
-    result_paths: Option<Vec<ResultPath>>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "ResourcesConfig§")]
-    resources_config: Option<ResourcesConfig>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Network")]
-    network: Option<NetworkConfig>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Timeouts")]
-    timeouts: Option<TimeoutConfig>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct InputSource {
-    #[serde(rename = "Source")]
-    source: SpecConfig,
-
-    #[serde(rename = "rename")]
-    rename: Option<String>,
-
-    #[serde(rename = "Target")]
-    target: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SpecConfig {
-    #[serde(rename = "Type")]
-    kind: String,
-
-    #[serde(rename = "Params")]
-    params: Map<String, Value>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ResultPath {
-    #[serde(rename = "Name")]
-    name: String,
-    #[serde(rename = "Path")]
-    path: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ResourcesConfig {
-    #[serde(rename = "CPU")]
-    cpu: Option<String>,
-
-    #[serde(rename = "Memory")]
-    memory: Option<String>,
-
-    #[serde(rename = "Disk")]
-    disk: Option<String>,
-
-    #[serde(rename = "GPU")]
-    gpu: Option<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct NetworkConfig {
-    #[serde(rename = "Type")]
-    kind: String,
-    #[serde(rename = "Domains")]
-    domains: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct TimeoutConfig {
-    #[serde(rename = "ExecutionTimeout")]
-    execution_timeout: Option<i64>,
+    match success {
+        true => {
+            let sresp: SubmitResponse = serde_json::from_slice(resp_body.as_ref()).unwrap();
+            Ok(sresp.job_id)
+        }
+        _ => {
+            let err: SubmitErrorResponse = serde_json::from_slice(resp_body.as_ref()).unwrap();
+            Err(err.error.into())
+        }
+    }
 }

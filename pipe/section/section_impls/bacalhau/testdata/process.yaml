@@ -5,6 +5,6 @@ Count: 1
 Tasks:
 - Name: extract
   Engine:
-    Type: docker
+    Type: process
     Params:
-      Image: "{{image}}"
+      Name: date
