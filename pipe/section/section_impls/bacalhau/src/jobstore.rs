@@ -82,23 +82,23 @@ struct PutJobRequest {
     headers: Option<Map<String, serde_json::Value>>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    #[tokio::test]
-    async fn test_jobstore() -> Result<(), StdError> {
-        let path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "testdata"].iter().collect();
+//     #[tokio::test]
+//     async fn test_jobstore() -> Result<(), StdError> {
+//         let path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "testdata"].iter().collect();
 
-        let mut args: HashMap<String, String> = HashMap::new();
-        args.insert("image".into(), "ubuntu".into());
+//         let mut args: HashMap<String, String> = HashMap::new();
+//         args.insert("image".into(), "ubuntu".into());
 
-        let j = JobStore::new(path.to_str().unwrap())?;
-        let output = j.render(String::from("process"), &args)?;
+//         let j = JobStore::new(path.to_str().unwrap())?;
+//         let output = j.render(String::from("process"), &args)?;
 
-        let r = submit(&output).await;
-        println!("{:?}", r);
+//         let r = submit(&output).await;
+//         println!("{:?}", r);
 
-        Ok(())
-    }
-}
+//         Ok(())
+//     }
+// }

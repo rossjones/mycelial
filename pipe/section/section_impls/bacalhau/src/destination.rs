@@ -60,12 +60,16 @@ impl Bacalhau {
                         return Ok(())
                     }
                 }
+
                 msg = input.next() => {
+                    println!("Ta-Da");
                     let mut msg = match msg {
                         Some(msg) => msg,
                         None => Err("input stream closed")?
                     };
                     msg.ack().await;
+
+                    println!("ACKed message");
 
                     let payload = &msg.payload;
                     let origin = &msg.origin;
@@ -90,5 +94,56 @@ where
 
     fn start(self, input: Input, output: Output, command: SectionChan) -> Self::Future {
         Box::pin(async move { self.enter_loop(input, output, command).await })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use stub::Stub;
+
+    use section::dummy::DummySectionChannel;
+    use tokio::sync::mpsc::{Receiver, Sender};
+    use tokio::time::{sleep, Duration};
+    use tokio_stream::wrappers::ReceiverStream;
+    use tokio_util::sync::PollSender;
+
+    pub fn channel<T>(buf_size: usize) -> (PollSender<T>, ReceiverStream<T>)
+    where
+        T: Send + 'static,
+    {
+        let (tx, rx): (Sender<T>, Receiver<T>) = tokio::sync::mpsc::channel(buf_size);
+        (PollSender::new(tx), ReceiverStream::new(rx))
+    }
+
+    #[tokio::test]
+    async fn test_trigger() -> Result<(), StdError> {
+        let jobstore: std::path::PathBuf =
+            [env!("CARGO_MANIFEST_DIR"), "testdata"].iter().collect();
+        let bac_dest = Bacalhau::new("process", jobstore.to_str().unwrap());
+
+        let (mut tx, input) = channel::<Message>(1);
+
+        let output = Stub::<Message, StdError>::new();
+        let output = output.sink_map_err(|_| "chan closed".into());
+
+        let section_chan = DummySectionChannel::new();
+
+        let section = bac_dest.start(input, output, section_chan);
+        let handle = tokio::spawn(section);
+
+        let payload = BacalhauPayload {
+            data: HashMap::new(),
+        };
+
+        futures::future::poll_fn(|cx| tx.poll_reserve(cx))
+            .await
+            .unwrap();
+
+        tx.send_item(Message::new("test", payload, None)).unwrap();
+        sleep(Duration::from_millis(100)).await;
+
+        handle.abort();
+        Ok(())
     }
 }

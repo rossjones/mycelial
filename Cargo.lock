@@ -436,8 +436,10 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "stub",
  "tokio",
  "tokio-stream",
+ "tokio-util",
 ]
 
 [[package]]
